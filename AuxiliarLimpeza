@@ -1,7 +1,11 @@
-
 function substituirNomeSegundaColuna() {
-  const templateDocId = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template
-  const pastaDestinoId = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta de destino no Drive
+  const templateDocIdLimpeza = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template para "Auxiliar de Limpeza"
+  const templateDocIdCarpintaria = "1XGEo-rNEqMCBIWDRR_iEUDmK4wUbcuqeTeJWfACEKZY"; // ID do template para "Carpintaria e Manutenção"
+  const templateDocIdDefault = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template padrão
+  
+  const pastaDestinoIdLimpeza = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta para "Auxiliar de Limpeza"
+  const pastaDestinoIdCarpintaria = "1DuBvADZtKHsCzYthb3rAcJudPs0RGbjP"; // ID da pasta para "Carpintaria e Manutenção"
+  const pastaDestinoIdDefault = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta padrão
 
   const planilha = SpreadsheetApp.openById("1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4");
   const aba = planilha.getActiveSheet();
@@ -9,14 +13,25 @@ function substituirNomeSegundaColuna() {
   const dataAtual = new Date();
   const dataFormatada = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "dd'.'MM'.'yyyy");
 
-
-
-
   for (let i = 1; i < dados.length; i++) {
     const nome = dados[i][1]; // Obtém o nome da segunda coluna
-    const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`; //Define o Nome do arquivo
+    const cargo = dados[i][11]; // Obtém o cargo da 12ª coluna
+    const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`; // Define o nome do arquivo
 
-// Verifica se já existe um arquivo com o mesmo nome na pasta de destino e o exclui
+    // Escolhe o template e a pasta de destino com base no cargo
+    let templateDocId, pastaDestinoId;
+    if (cargo === "Auxiliar de Limpeza") {
+      templateDocId = templateDocIdLimpeza;
+      pastaDestinoId = pastaDestinoIdLimpeza;
+    } else if (cargo === "Carpintaria" || cargo === "Manutenção Geral") {
+      templateDocId = templateDocIdCarpintaria;
+      pastaDestinoId = pastaDestinoIdCarpintaria;
+    } else {
+      templateDocId = templateDocIdDefault;
+      pastaDestinoId = pastaDestinoIdDefault;
+    }
+
+    // Verifica se já existe um arquivo com o mesmo nome na pasta de destino e o exclui
     const pastaDestino = DriveApp.getFolderById(pastaDestinoId);
     const arquivosExistentes = pastaDestino.getFilesByName(nomeArquivo);
     while (arquivosExistentes.hasNext()) {
@@ -25,26 +40,24 @@ function substituirNomeSegundaColuna() {
     }
 
     // Cria uma cópia do template
-
     const templateDoc = DriveApp.getFileById(templateDocId);
-    const novoDoc = templateDoc.makeCopy(`MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`, DriveApp.getFolderById(pastaDestinoId));
+    const novoDoc = templateDoc.makeCopy(`MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`, pastaDestino);
     const doc = DocumentApp.openById(novoDoc.getId());
     const body = doc.getBody(); // Obtém o corpo do documento
 
-    // Substitui o placeholder {{N}} pelo nome atual
-
+    // Substitui os placeholders
     body.replaceText('{{Nome}}', dados[i][1]);
     body.replaceText('{{Status Civil}}', dados[i][2]);
     body.replaceText('{{Passaporte1}}', dados[i][4]);
-    body.replaceText('{{PassaporteDt}}',dados[i][5]);
-    body.replaceText('{{Morada1}}', dados[i][7]); 
+    body.replaceText('{{PassaporteDt}}', dados[i][5]);
+    body.replaceText('{{Morada1}}', dados[i][7]);
     body.replaceText('{{Cidade}}', dados[i][8]);
     body.replaceText('{{Provincia}}', dados[i][9]);
     body.replaceText("{{Data}}", dataFormatada);
 
     doc.saveAndClose();
 
-     // Reabre o arquivo para garantir que as alterações sejam refletidas no PDF
+    // Reabre o arquivo para garantir que as alterações sejam refletidas no PDF
     const atualizadoDoc = DriveApp.getFileById(novoDoc.getId());
     const pdfBlob = atualizadoDoc.getAs("application/pdf");
 
