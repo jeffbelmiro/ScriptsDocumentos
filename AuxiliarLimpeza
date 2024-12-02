@@ -1,0 +1,61 @@
+
+function substituirNomeSegundaColuna() {
+  const templateDocId = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template
+  const pastaDestinoId = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta de destino no Drive
+
+  const planilha = SpreadsheetApp.openById("1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4");
+  const aba = planilha.getActiveSheet();
+  const dados = aba.getDataRange().getValues();
+  const dataAtual = new Date();
+  const dataFormatada = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "dd'.'MM'.'yyyy");
+
+
+
+
+  for (let i = 1; i < dados.length; i++) {
+    const nome = dados[i][1]; // Obtém o nome da segunda coluna
+    const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`; //Define o Nome do arquivo
+
+// Verifica se já existe um arquivo com o mesmo nome na pasta de destino e o exclui
+    const pastaDestino = DriveApp.getFolderById(pastaDestinoId);
+    const arquivosExistentes = pastaDestino.getFilesByName(nomeArquivo);
+    while (arquivosExistentes.hasNext()) {
+      const arquivo = arquivosExistentes.next();
+      arquivo.setTrashed(true); // Move o arquivo para a lixeira
+    }
+
+    // Cria uma cópia do template
+
+    const templateDoc = DriveApp.getFileById(templateDocId);
+    const novoDoc = templateDoc.makeCopy(`MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`, DriveApp.getFolderById(pastaDestinoId));
+    const doc = DocumentApp.openById(novoDoc.getId());
+    const body = doc.getBody(); // Obtém o corpo do documento
+
+    // Substitui o placeholder {{N}} pelo nome atual
+
+    body.replaceText('{{Nome}}', dados[i][1]);
+    body.replaceText('{{Status Civil}}', dados[i][2]);
+    body.replaceText('{{Passaporte1}}', dados[i][4]);
+    body.replaceText('{{PassaporteDt}}',dados[i][5]);
+    body.replaceText('{{Morada1}}', dados[i][7]); 
+    body.replaceText('{{Cidade}}', dados[i][8]);
+    body.replaceText('{{Provincia}}', dados[i][9]);
+    body.replaceText("{{Data}}", dataFormatada);
+
+    doc.saveAndClose();
+
+     // Reabre o arquivo para garantir que as alterações sejam refletidas no PDF
+    const atualizadoDoc = DriveApp.getFileById(novoDoc.getId());
+    const pdfBlob = atualizadoDoc.getAs("application/pdf");
+
+    // Verifica se já existe um PDF com o mesmo nome e o exclui
+    const arquivosPdfExistentes = pastaDestino.getFilesByName(`${nomeArquivo}.pdf`);
+    while (arquivosPdfExistentes.hasNext()) {
+      const arquivoPdf = arquivosPdfExistentes.next();
+      arquivoPdf.setTrashed(true); // Move o arquivo para a lixeira
+    }
+
+    // Salva o PDF na pasta de destino
+    pastaDestino.createFile(pdfBlob).setName(`${nomeArquivo}.pdf`);
+  }
+}
