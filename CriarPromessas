@@ -18,7 +18,11 @@ function substituirNomeSegundaColuna() {
   const dataFormatada = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "dd'.'MM'.'yyyy");
 
   for (let i = 1; i < dados.length; i++) {
-    const nome = dados[i][1]; // Obtém o nome da segunda coluna
+    let nome = dados[i][1]; // Obtém o nome da segunda coluna
+    if (nome) {
+        nome = nome.toUpperCase(); // Converte o nome para maiúsculas
+        dados[i][1] = nome; // Atualiza o array (opcional, se necessário reutilizar no código)
+    }
     const cargo = dados[i][11]; // Obtém o cargo da 12ª coluna
     const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`; // Define o nome do arquivo
 
