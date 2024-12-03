@@ -17,7 +17,7 @@ function substituirNomeSegundaColuna() {
   const pastasCache = {}; // Cache para armazenar referências de pastas
   
   for (let i = 1; i < dados.length; i++) {
-    const nome = (dados[i][1] || "").toUpperCase(); // Converte o nome para maiúsculas
+    const nome = (dados[i][4] || "").toUpperCase(); // Converte o nome para maiúsculas
     const cargo = dados[i][11]; // Obtém o cargo da 12ª coluna
     const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`;
     const templateInfo = templates[cargo];
@@ -48,12 +48,13 @@ function substituirNomeSegundaColuna() {
     // Substituições no documento
     const placeholders = {
       "{{Nome}}": nome,
-      "{{Status Civil}}": dados[i][2],
-      "{{Passaporte1}}": dados[i][4],
-      "{{PassaporteDt}}": dados[i][5],
+      "{{Status Civil}}": dados[i][5],
+      "{{Passaporte1}}": dados[i][1],
+      "{{PassaporteDt}}": dados[i][2],
       "{{Morada1}}": dados[i][7],
       "{{Cidade}}": dados[i][8],
-      "{{Provincia}}": dados[i][9],
+      "{{CodigoPostal}}": dados[i][9],
+      "{{Provincia}}": dados[i][10],
       "{{Data}}": dataFormatada
     };
 
