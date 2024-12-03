@@ -65,6 +65,7 @@ function substituirNomeSegundaColuna() {
     body.replaceText('{{Provincia}}', dados[i][9]);
     body.replaceText("{{Data}}", dataFormatada);
 
+    
     doc.saveAndClose();
 
     // Reabre o arquivo para garantir que as alterações sejam refletidas no PDF
