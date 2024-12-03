@@ -1,15 +1,12 @@
 function substituirNomeSegundaColuna() {
-  const templateDocIdLimpeza = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template para "Auxiliar de Limpeza"
-  const templateDocIdCarpintaria = "1XGEo-rNEqMCBIWDRR_iEUDmK4wUbcuqeTeJWfACEKZY"; // ID do template para "Carpintaria e Manutenção"
-  const templateDocIdEletricista = "1bw5yI3hrkGNSZwnmQq3xJsil5WtrAARTH27Q5WHoRzU"; // ID do template "Eletricista" 
-  const templateDocIdEmpregadodeMesa = "1iebHeIdxFVimzuG2DQ5_XgpZayOlTr5jhYf1nUa2ucw"; // ID do template "Empregado de Mesa"
-  const templateDocIdAuxiliardeCozinha = "1joeyLisknlNZ9y3a0Mrx5RgxID5h0RHmMJyXgIFHqtg"; // ID do template "Auxiliar de Cozinha"
-  
-  const pastaDestinoIdLimpeza = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta para "Auxiliar de Limpeza"
-  const pastaDestinoIdCarpintaria = "1DuBvADZtKHsCzYthb3rAcJudPs0RGbjP"; // ID da pasta para "Carpintaria e Manutenção"
-  const pastaDestinoIdEletricista = "1jcRbOD8tBgEebQrh8K9zCQTnEgq_oFDN"; // ID da pasta para "Eletricista"
-  const pastaDestinoIdEmpregadodeMesa = "1xKaqVmZOXrx2QifPb-BmXQbtp9a_ccMU"; // ID da pasta para "Empregado de Mesa"
-  const pastaDestinoIdAuxiliardeCozinha = "1eMUxcSl81JFymtKpkdc95qb-6en7L4g_"; // ID da pasta para "Auxiliar de Cozinha"
+  const templates = {
+    "Limpeza": { templateId: "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI", folderId: "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj" },
+    "Carpintaria": { templateId: "1XGEo-rNEqMCBIWDRR_iEUDmK4wUbcuqeTeJWfACEKZY", folderId: "1DuBvADZtKHsCzYthb3rAcJudPs0RGbjP" },
+    "Manutenção Geral": { templateId: "1XGEo-rNEqMCBIWDRR_iEUDmK4wUbcuqeTeJWfACEKZY", folderId: "1DuBvADZtKHsCzYthb3rAcJudPs0RGbjP" },
+    "Eletricista": { templateId: "1bw5yI3hrkGNSZwnmQq3xJsil5WtrAARTH27Q5WHoRzU", folderId: "1jcRbOD8tBgEebQrh8K9zCQTnEgq_oFDN" },
+    "Empregado de Mesa": { templateId: "1iebHeIdxFVimzuG2DQ5_XgpZayOlTr5jhYf1nUa2ucw", folderId: "1xKaqVmZOXrx2QifPb-BmXQbtp9a_ccMU" },
+    "Auxiliar de Cozinha": { templateId: "1joeyLisknlNZ9y3a0Mrx5RgxID5h0RHmMJyXgIFHqtg", folderId: "1eMUxcSl81JFymtKpkdc95qb-6en7L4g_" }
+  };
 
   const planilha = SpreadsheetApp.openById("1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4");
   const aba = planilha.getActiveSheet();
@@ -17,69 +14,62 @@ function substituirNomeSegundaColuna() {
   const dataAtual = new Date();
   const dataFormatada = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "dd'.'MM'.'yyyy");
 
+  const pastasCache = {}; // Cache para armazenar referências de pastas
+  
   for (let i = 1; i < dados.length; i++) {
-    let nome = dados[i][1]; // Obtém o nome da segunda coluna
-    if (nome) {
-        nome = nome.toUpperCase(); // Converte o nome para maiúsculas
-        dados[i][1] = nome; // Atualiza o array (opcional, se necessário reutilizar no código)
-    }
+    const nome = (dados[i][1] || "").toUpperCase(); // Converte o nome para maiúsculas
     const cargo = dados[i][11]; // Obtém o cargo da 12ª coluna
-    const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`; // Define o nome do arquivo
+    const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`;
+    const templateInfo = templates[cargo];
+    
+    if (!templateInfo) continue; // Pule cargos não suportados
 
-    // Escolhe o template e a pasta de destino com base no cargo
-    let templateDocId, pastaDestinoId;
-    if (cargo === "Limpeza") {
-      templateDocId = templateDocIdLimpeza;
-      pastaDestinoId = pastaDestinoIdLimpeza;
-    } else if (cargo === "Carpintaria" || cargo === "Manutenção Geral") {
-      templateDocId = templateDocIdCarpintaria;
-      pastaDestinoId = pastaDestinoIdCarpintaria;
-    } else if (cargo === "Eletricista") {
-      templateDocId = templateDocIdEletricista;
-      pastaDestinoId = pastaDestinoIdEletricista;
-    }else if (cargo === "Empregado de Mesa") {
-      templateDocId = templateDocIdEmpregadodeMesa;
-      pastaDestinoId = pastaDestinoIdEmpregadodeMesa;
-    }else if (cargo === "Auxiliar de Cozinha") {
-      templateDocId = templateDocIdAuxiliardeCozinha;
-      pastaDestinoId = pastaDestinoIdAuxiliardeCozinha;
+    const { templateId, folderId } = templateInfo;
+
+    // Cache de pasta para evitar chamadas repetidas
+    let pastaDestino = pastasCache[folderId];
+    if (!pastaDestino) {
+      pastaDestino = DriveApp.getFolderById(folderId);
+      pastasCache[folderId] = pastaDestino;
     }
 
-    // Verifica se já existe um arquivo com o mesmo nome na pasta de destino e o exclui
-    const pastaDestino = DriveApp.getFolderById(pastaDestinoId);
+    // Remove arquivos duplicados na pasta
     const arquivosExistentes = pastaDestino.getFilesByName(nomeArquivo);
     while (arquivosExistentes.hasNext()) {
-      const arquivo = arquivosExistentes.next();
-      arquivo.setTrashed(true); // Move o arquivo para a lixeira
+      arquivosExistentes.next().setTrashed(true);
     }
 
     // Cria uma cópia do template
-    const templateDoc = DriveApp.getFileById(templateDocId);
-    const novoDoc = templateDoc.makeCopy(`MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`, pastaDestino);
+    const templateDoc = DriveApp.getFileById(templateId);
+    const novoDoc = templateDoc.makeCopy(nomeArquivo, pastaDestino);
     const doc = DocumentApp.openById(novoDoc.getId());
-    const body = doc.getBody(); // Obtém o corpo do documento
+    const body = doc.getBody();
 
-    // Substitui os placeholders
-    body.replaceText('{{Nome}}', dados[i][1]);
-    body.replaceText('{{Status Civil}}', dados[i][2]);
-    body.replaceText('{{Passaporte1}}', dados[i][4]);
-    body.replaceText('{{PassaporteDt}}', dados[i][5]);
-    body.replaceText('{{Morada1}}', dados[i][7]);
-    body.replaceText('{{Cidade}}', dados[i][8]);
-    body.replaceText('{{Provincia}}', dados[i][9]);
-    body.replaceText("{{Data}}", dataFormatada);
+    // Substituições no documento
+    const placeholders = {
+      "{{Nome}}": nome,
+      "{{Status Civil}}": dados[i][2],
+      "{{Passaporte1}}": dados[i][4],
+      "{{PassaporteDt}}": dados[i][5],
+      "{{Morada1}}": dados[i][7],
+      "{{Cidade}}": dados[i][8],
+      "{{Provincia}}": dados[i][9],
+      "{{Data}}": dataFormatada
+    };
+
+    for (const [key, value] of Object.entries(placeholders)) {
+      body.replaceText(key, value || "");
+    }
 
     doc.saveAndClose();
 
-    // Reabre o arquivo para garantir que as alterações sejam refletidas no PDF
-    const atualizadoDoc = DriveApp.getFileById(novoDoc.getId());
-    const pdfBlob = atualizadoDoc.getAs("application/pdf");
+    // Criação do PDF
+    const pdfBlob = DriveApp.getFileById(novoDoc.getId()).getAs("application/pdf");
 
-    // Verifica se já existe um PDF com o mesmo nome e o exclui
+    // Remove PDFs duplicados
     const arquivosPdfExistentes = pastaDestino.getFilesByName(`${nomeArquivo}.pdf`);
     while (arquivosPdfExistentes.hasNext()) {
-      const arquivoPdf = arquivosPdfExistentes.next();
-      arquivoPdf.setTrashed(true); // Move o arquivo para a lixeira
+      arquivosPdfExistentes.next().setTrashed(true);
     }
 
     // Salva o PDF na pasta de destino
