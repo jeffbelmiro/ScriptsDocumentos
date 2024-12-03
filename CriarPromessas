@@ -24,7 +24,7 @@ function substituirNomeSegundaColuna() {
 
     // Escolhe o template e a pasta de destino com base no cargo
     let templateDocId, pastaDestinoId;
-    if (cargo === "Auxiliar de Limpeza") {
+    if (cargo === "Limpeza") {
       templateDocId = templateDocIdLimpeza;
       pastaDestinoId = pastaDestinoIdLimpeza;
     } else if (cargo === "Carpintaria" || cargo === "Manutenção Geral") {
@@ -65,7 +65,6 @@ function substituirNomeSegundaColuna() {
     body.replaceText('{{Provincia}}', dados[i][9]);
     body.replaceText("{{Data}}", dataFormatada);
 
-    
     doc.saveAndClose();
 
     // Reabre o arquivo para garantir que as alterações sejam refletidas no PDF
