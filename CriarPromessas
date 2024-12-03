@@ -1,11 +1,15 @@
 function substituirNomeSegundaColuna() {
   const templateDocIdLimpeza = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template para "Auxiliar de Limpeza"
   const templateDocIdCarpintaria = "1XGEo-rNEqMCBIWDRR_iEUDmK4wUbcuqeTeJWfACEKZY"; // ID do template para "Carpintaria e Manutenção"
-  const templateDocIdDefault = "1wQOwLXe0zMrfQJtyEiU1BvkpFhuLzLe9Th4wX2R3bpI"; // ID do template padrão
+  const templateDocIdEletricista = "1bw5yI3hrkGNSZwnmQq3xJsil5WtrAARTH27Q5WHoRzU"; // ID do template "Eletricista" 
+  const templateDocIdEmpregadodeMesa = "1iebHeIdxFVimzuG2DQ5_XgpZayOlTr5jhYf1nUa2ucw"; // ID do template "Empregado de Mesa"
+  const templateDocIdAuxiliardeCozinha = "1joeyLisknlNZ9y3a0Mrx5RgxID5h0RHmMJyXgIFHqtg"; // ID do template "Auxiliar de Cozinha"
   
   const pastaDestinoIdLimpeza = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta para "Auxiliar de Limpeza"
   const pastaDestinoIdCarpintaria = "1DuBvADZtKHsCzYthb3rAcJudPs0RGbjP"; // ID da pasta para "Carpintaria e Manutenção"
-  const pastaDestinoIdDefault = "1czA4vsdFBjD_Kcp482XMWUnLiXHo0Amj"; // ID da pasta padrão
+  const pastaDestinoIdEletricista = "1jcRbOD8tBgEebQrh8K9zCQTnEgq_oFDN"; // ID da pasta para "Eletricista"
+  const pastaDestinoIdEmpregadodeMesa = "1xKaqVmZOXrx2QifPb-BmXQbtp9a_ccMU"; // ID da pasta para "Empregado de Mesa"
+  const pastaDestinoIdAuxiliardeCozinha = "1eMUxcSl81JFymtKpkdc95qb-6en7L4g_"; // ID da pasta para "Auxiliar de Cozinha"
 
   const planilha = SpreadsheetApp.openById("1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4");
   const aba = planilha.getActiveSheet();
@@ -26,9 +30,15 @@ function substituirNomeSegundaColuna() {
     } else if (cargo === "Carpintaria" || cargo === "Manutenção Geral") {
       templateDocId = templateDocIdCarpintaria;
       pastaDestinoId = pastaDestinoIdCarpintaria;
-    } else {
-      templateDocId = templateDocIdDefault;
-      pastaDestinoId = pastaDestinoIdDefault;
+    } else if (cargo === "Eletricista") {
+      templateDocId = templateDocIdEletricista;
+      pastaDestinoId = pastaDestinoIdEletricista;
+    }else if (cargo === "Empregado de Mesa") {
+      templateDocId = templateDocIdEmpregadodeMesa;
+      pastaDestinoId = pastaDestinoIdEmpregadodeMesa;
+    }else if (cargo === "Auxiliar de Cozinha") {
+      templateDocId = templateDocIdAuxiliardeCozinha;
+      pastaDestinoId = pastaDestinoIdAuxiliardeCozinha;
     }
 
     // Verifica se já existe um arquivo com o mesmo nome na pasta de destino e o exclui
