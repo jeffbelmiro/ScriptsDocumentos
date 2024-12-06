@@ -18,7 +18,7 @@ function substituirNomeSegundaColuna() {
   const abaDestino = planilhaDestino.getActiveSheet();
 
   const dataAtual = new Date();
-  const dataFormatada = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "dd'.'MM'.'yyyy");
+  const dataFormatada = formatarData(dataAtual);
 
   const pastasCache = {}; // Cache para armazenar referências de pastas
   const linhasParaRemover = []; // Array para rastrear linhas a serem removidas
@@ -72,7 +72,7 @@ function substituirNomeSegundaColuna() {
       "{{Nome}}": nome,
       "{{Status Civil}}": dadosBase[i][5],
       "{{Passaporte1}}": passaporte,
-      "{{PassaporteDt}}": dadosBase[i][2],
+      "{{PassaporteDt}}": formatarData(dadosBase[i][2]),
       "{{Morada1}}": dadosBase[i][7],
       "{{Cidade}}": dadosBase[i][8],
       "{{CodigoPostal}}": dadosBase[i][9],
@@ -109,4 +109,16 @@ function substituirNomeSegundaColuna() {
   for (let i = linhasParaRemover.length - 1; i >= 0; i--) {
     abaBase.deleteRow(linhasParaRemover[i]);
   }
+}
+
+// Função para formatar a data
+function formatarData(data) {
+  const meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+  const dia = data.getDate();
+  const mes = meses[data.getMonth()];
+  const ano = data.getFullYear();
+  return `${dia} de ${mes} de ${ano}`;
 }
