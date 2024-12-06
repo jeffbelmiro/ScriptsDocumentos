@@ -8,53 +8,75 @@ function substituirNomeSegundaColuna() {
     "Auxiliar de Cozinha": { templateId: "1joeyLisknlNZ9y3a0Mrx5RgxID5h0RHmMJyXgIFHqtg", folderId: "1eMUxcSl81JFymtKpkdc95qb-6en7L4g_" }
   };
 
-  const planilha = SpreadsheetApp.openById("1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4");
-  const aba = planilha.getActiveSheet();
-  const dados = aba.getDataRange().getValues();
+  const planilhaBaseId = "1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4";
+  const planilhaDestinoId = "1OqvIJNNgXVYxZ8hlSH6BdQf5NhR5kaEhyvWCXKVaz5s";
+  const planilhaBase = SpreadsheetApp.openById(planilhaBaseId);
+  const abaBase = planilhaBase.getActiveSheet();
+  const dadosBase = abaBase.getDataRange().getValues();
+
+  const planilhaDestino = SpreadsheetApp.openById(planilhaDestinoId);
+  const abaDestino = planilhaDestino.getActiveSheet();
+
   const dataAtual = new Date();
   const dataFormatada = Utilities.formatDate(dataAtual, Session.getScriptTimeZone(), "dd'.'MM'.'yyyy");
 
   const pastasCache = {}; // Cache para armazenar referências de pastas
-  
-  for (let i = 1; i < dados.length; i++) {
-    const nome = (dados[i][4] || "").toUpperCase(); // Converte o nome para maiúsculas
-    const cargo = dados[i][11]; // Obtém o cargo da 12ª coluna
+  const linhasParaRemover = []; // Array para rastrear linhas a serem removidas
+
+  for (let i = 1; i < dadosBase.length; i++) {
+    const nome = (dadosBase[i][4] || "").toUpperCase(); // Converte o nome para maiúsculas
+    const passaporte = dadosBase[i][1] || ""; // Obtém o passaporte
+    const cargo = (dadosBase[i][12] || "").trim(); // Remove espaços extras
     const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`;
+
+    // Verifica se o cargo está no objeto templates
     const templateInfo = templates[cargo];
-    
-    if (!templateInfo) continue; // Pule cargos não suportados
+    if (!templateInfo) {
+      console.error(`Cargo não encontrado no template: "${cargo}" na linha ${i + 1}`);
+      continue;
+    }
 
     const { templateId, folderId } = templateInfo;
 
     // Cache de pasta para evitar chamadas repetidas
-    let pastaDestino = pastasCache[folderId];
-    if (!pastaDestino) {
-      pastaDestino = DriveApp.getFolderById(folderId);
-      pastasCache[folderId] = pastaDestino;
+    let pastaBase = pastasCache[folderId];
+    if (!pastaBase) {
+      pastaBase = DriveApp.getFolderById(folderId);
+      pastasCache[folderId] = pastaBase;
     }
 
-    // Remove arquivos duplicados na pasta
-    const arquivosExistentes = pastaDestino.getFilesByName(nomeArquivo);
+    // Criação ou obtenção da subpasta
+    const nomeSubpasta = `${passaporte} - ${nome}`;
+    let subpastaDestino;
+    const pastasSub = pastaBase.getFoldersByName(nomeSubpasta);
+    if (pastasSub.hasNext()) {
+      subpastaDestino = pastasSub.next();
+    } else {
+      subpastaDestino = pastaBase.createFolder(nomeSubpasta);
+    }
+
+    // Remove arquivos duplicados na subpasta
+    const arquivosExistentes = subpastaDestino.getFilesByName(nomeArquivo);
     while (arquivosExistentes.hasNext()) {
       arquivosExistentes.next().setTrashed(true);
     }
 
     // Cria uma cópia do template
     const templateDoc = DriveApp.getFileById(templateId);
-    const novoDoc = templateDoc.makeCopy(nomeArquivo, pastaDestino);
+    const novoDoc = templateDoc.makeCopy(nomeArquivo, subpastaDestino);
     const doc = DocumentApp.openById(novoDoc.getId());
     const body = doc.getBody();
 
     // Substituições no documento
     const placeholders = {
       "{{Nome}}": nome,
-      "{{Status Civil}}": dados[i][5],
-      "{{Passaporte1}}": dados[i][1],
-      "{{PassaporteDt}}": dados[i][2],
-      "{{Morada1}}": dados[i][7],
-      "{{Cidade}}": dados[i][8],
-      "{{CodigoPostal}}": dados[i][9],
-      "{{Provincia}}": dados[i][10],
+      "{{Status Civil}}": dadosBase[i][5],
+      "{{Passaporte1}}": passaporte,
+      "{{PassaporteDt}}": dadosBase[i][2],
+      "{{Morada1}}": dadosBase[i][7],
+      "{{Cidade}}": dadosBase[i][8],
+      "{{CodigoPostal}}": dadosBase[i][9],
+      "{{Provincia}}": dadosBase[i][10],
       "{{Data}}": dataFormatada
     };
 
@@ -67,13 +89,24 @@ function substituirNomeSegundaColuna() {
     // Criação do PDF
     const pdfBlob = DriveApp.getFileById(novoDoc.getId()).getAs("application/pdf");
 
-    // Remove PDFs duplicados
-    const arquivosPdfExistentes = pastaDestino.getFilesByName(`${nomeArquivo}.pdf`);
+    // Remove PDFs duplicados na subpasta
+    const arquivosPdfExistentes = subpastaDestino.getFilesByName(`${nomeArquivo}.pdf`);
     while (arquivosPdfExistentes.hasNext()) {
       arquivosPdfExistentes.next().setTrashed(true);
     }
 
-    // Salva o PDF na pasta de destino
-    pastaDestino.createFile(pdfBlob).setName(`${nomeArquivo}.pdf`);
+    // Salva o PDF na subpasta
+    subpastaDestino.createFile(pdfBlob).setName(`${nomeArquivo}.pdf`);
+
+    // Copia os dados para a planilha destino
+    abaDestino.appendRow(dadosBase[i]);
+
+    // Marca a linha para remoção
+    linhasParaRemover.push(i + 1); // Compensa o índice base 1
+  }
+
+  // Remove as linhas marcadas na planilha base (de trás para frente para evitar mudanças de índice)
+  for (let i = linhasParaRemover.length - 1; i >= 0; i--) {
+    abaBase.deleteRow(linhasParaRemover[i]);
   }
 }
