@@ -8,6 +8,7 @@ function substituirNomeSegundaColuna() {
     "Auxiliar de Cozinha": { templateId: "1joeyLisknlNZ9y3a0Mrx5RgxID5h0RHmMJyXgIFHqtg", folderId: "1eMUxcSl81JFymtKpkdc95qb-6en7L4g_" }
   };
 
+  const pastaFotosFormularioId = "1rRGbkAFy9lpKBP0aFLc_SWRZ_5fFAseHOj1LA8jsr0z45RsxCE18u4FPGLX9YuF3TPss1u07"; // Substitua pelo ID da pasta de destino das fotos do formulário
   const planilhaBaseId = "1ttdzp88wQNfkPhAASA0Vx2rJKikZgEqvDiuPiN38hD4";
   const planilhaDestinoId = "1OqvIJNNgXVYxZ8hlSH6BdQf5NhR5kaEhyvWCXKVaz5s";
   const planilhaBase = SpreadsheetApp.openById(planilhaBaseId);
@@ -23,11 +24,17 @@ function substituirNomeSegundaColuna() {
   const pastasCache = {}; // Cache para armazenar referências de pastas
   const linhasParaRemover = []; // Array para rastrear linhas a serem removidas
 
+  // Pasta onde as fotos enviadas pelo formulário estão armazenadas
+  const pastaFotosFormulario = DriveApp.getFolderById(pastaFotosFormularioId);
+
   for (let i = 1; i < dadosBase.length; i++) {
-    const nome = (dadosBase[i][4] || "").toUpperCase(); // Converte o nome para maiúsculas
-    const passaporte = dadosBase[i][1] || ""; // Obtém o passaporte
-    const cargo = (dadosBase[i][12] || "").trim(); // Remove espaços extras
-    const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`;
+  const nome = (dadosBase[i][4] || "").toUpperCase(); // Converte o nome para maiúsculas
+  const passaporte = dadosBase[i][1] || ""; // Obtém o passaporte
+  const cargo = (dadosBase[i][12] || "").trim(); // Remove espaços extras
+  const dataValidadePassaporte = new Date(dadosBase[i][2]); // Supondo que a data esteja na coluna 3 (índice 2)
+  const dataFormatadaValidade = formatarData(dataValidadePassaporte); // Formata a data de validade para o documento
+
+  const nomeArquivo = `MINUTA PROMESSA DE CONTRATO DE TRABALHO - ${nome}`;
 
     // Verifica se o cargo está no objeto templates
     const templateInfo = templates[cargo];
@@ -68,20 +75,21 @@ function substituirNomeSegundaColuna() {
     const body = doc.getBody();
 
     // Substituições no documento
-    const placeholders = {
-      "{{Nome}}": nome,
-      "{{Status Civil}}": dadosBase[i][5],
-      "{{Passaporte1}}": passaporte,
-      "{{PassaporteDt}}": formatarData(dadosBase[i][2]),
-      "{{Morada1}}": dadosBase[i][7],
-      "{{Cidade}}": dadosBase[i][8],
-      "{{CodigoPostal}}": dadosBase[i][9],
-      "{{Provincia}}": dadosBase[i][10],
-      "{{Data}}": dataFormatada
-    };
+   const placeholders = {
+    "{{Nome}}": nome,
+    "{{Status Civil}}": dadosBase[i][5],
+    "{{Passaporte1}}": passaporte,
+    "{{PassaporteDt}}": dataFormatadaValidade, // Usa a data de validade do passaporte formatada
+    "{{Morada1}}": dadosBase[i][7],
+    "{{Cidade}}": dadosBase[i][8],
+    "{{CodigoPostal}}": dadosBase[i][9],
+    "{{Provincia}}": dadosBase[i][10],
+    "{{Data}}": formatarData(new Date()) // Data atual formatada
+  };
 
-    for (const [key, value] of Object.entries(placeholders)) {
-      body.replaceText(key, value || "");
+  for (const [key, value] of Object.entries(placeholders)) {
+    body.replaceText(key, value || "");
+  
     }
 
     doc.saveAndClose();
@@ -97,6 +105,14 @@ function substituirNomeSegundaColuna() {
 
     // Salva o PDF na subpasta
     subpastaDestino.createFile(pdfBlob).setName(`${nomeArquivo}.pdf`);
+
+    // Mover e renomear as fotos associadas ao passaporte
+    const fotos = pastaFotosFormulario.getFilesByName(passaporte);
+    while (fotos.hasNext()) {
+      const foto = fotos.next();
+      const novoNomeFoto = `${passaporte} - ${nome}`;
+      subpastaDestino.createFile(foto.getBlob()).setName(novoNomeFoto);
+    }
 
     // Copia os dados para a planilha destino
     abaDestino.appendRow(dadosBase[i]);
